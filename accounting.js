@@ -9,7 +9,7 @@
  * http://openexchangerates.github.io/accounting.js/
  */
 
-(function(root, undefined) {
+(function (root, undefined) {
 
 	/* --- Setup --- */
 
@@ -26,18 +26,18 @@
 	// currency and number formatting
 	lib.settings = {
 		currency: {
-			symbol : "$",		// default currency symbol is '$'
-			format : "%s%v",	// controls output: %s = symbol, %v = value (can be object, see docs)
-			decimal : ".",		// decimal point separator
-			thousand : ",",		// thousands separator
-			precision : 2,		// decimal places
-			grouping : 3		// digit grouping (not implemented yet)
+			symbol: "$",		// default currency symbol is '$'
+			format: "%s%v",	    // controls output: %s = symbol, %v = value (can be object, see docs)
+			decimal: ".",		// decimal point separator
+			thousand: ",",		// thousands separator
+			precision: 2,		// decimal places
+			grouping: 3		// digit grouping (not implemented yet)
 		},
 		number: {
-			precision : 0,		// default precision on numbers is 0
-			grouping : 3,		// digit grouping (not implemented yet)
-			thousand : ",",
-			decimal : "."
+			precision: 0,		// default precision on numbers is 0
+			grouping: 3,		// digit grouping (not implemented yet)
+			thousand: ",",
+			decimal: "."
 		}
 	};
 
@@ -106,7 +106,7 @@
 		if (nativeMap && obj.map === nativeMap) return obj.map(iterator, context);
 
 		// Fallback for native .map:
-		for (i = 0, j = obj.length; i < j; i++ ) {
+		for (i = 0, j = obj.length; i < j; i++) {
 			results[i] = iterator.call(context, obj[i], i, obj);
 		}
 		return results;
@@ -117,43 +117,57 @@
 	 */
 	function checkPrecision(val, base) {
 		val = Math.round(Math.abs(val));
-		return isNaN(val)? base : val;
+		return isNaN(val) ? base : val;
 	}
 
 
 	/**
 	 * Parses a format string or object and returns format obj for use in rendering
-	 *
-	 * `format` is either a string with the default (positive) format, or object
-	 * containing `pos` (required), `neg` and `zero` values (or a function returning
-	 * either a string or object)
-	 *
-	 * Either string or format.pos must contain "%v" (value) to be valid
+	 * 
+	 * Parameters:
+	 * string     has "default positive format", must contain "%v"
+	 * object     has `pos` (required, must contain "%v"), `neg`, `zero` properties
+	 * function   returns a string or object like above
+	 * 
+	 * Returns:
+	 * object     has `pos` (required, must contain '%v'), `neg`, `zero` properties
+	 * 
+	 * Scenarios
+	 * A: Valid string     ==> convert string to a format object
+	 * B: Invalid string   ==> use default and turn it to an obj if it's not already
+	 * C: Valid object     ==> leave the object alone
+	 * D: Invalid object   ==> use default and turn it to an obj if it's not already
+	 * E: Function         ==> Depends on what the function returns
+	 * F: Nothing 		   ==> use default and turn it to an obj if it's not already
+	 * 
 	 */
 	function checkCurrencyFormat(format) {
+		// Default value will be "%s%v" format
 		var defaults = lib.settings.currency.format;
 
 		// Allow function as format parameter (should return string or object):
-		if ( typeof format === "function" ) format = format();
+		if (typeof format === "function") format = format();
 
 		// Format can be a string, in which case `value` ("%v") must be present:
-		if ( isString( format ) && format.match("%v") ) {
+		if (isString(format) && format.match("%v")) {
 
 			// Create and return positive, negative and zero formats:
 			return {
-				pos : format,
-				neg : format.replace("-", "").replace("%v", "-%v"),
-				zero : format
+				pos: format,
+				// '%s %v' ==> '%s -- -%v'
+				// '%s %v' ==> '%s - %v' ==> '%s - %v'
+				neg: format.replace("-", "").replace("%v", "-%v"),
+				zero: format
 			};
 
-		// If no format, or object is missing valid positive value, use defaults:
-		} else if ( !format || !format.pos || !format.pos.match("%v") ) {
+			// If no format, or object is missing valid positive value, use defaults:
+		} else if (!format || !format.pos || !format.pos.match("%v")) {
 
 			// If defaults is a string, casts it to an object for faster checking next time:
-			return ( !isString( defaults ) ) ? defaults : lib.settings.currency.format = {
-				pos : defaults,
-				neg : defaults.replace("%v", "-%v"),
-				zero : defaults
+			return (!isString(defaults)) ? defaults : lib.settings.currency.format = {
+				pos: defaults,
+				neg: defaults.replace("%v", "-%v"),
+				zero: defaults
 			};
 
 		}
@@ -176,10 +190,10 @@
 	 *
 	 * Doesn't throw any errors (`NaN`s become 0) but this may change in future
 	 */
-	var unformat = lib.unformat = lib.parse = function(value, decimal) {
+	var unformat = lib.unformat = lib.parse = function (value, decimal) {
 		// Recursively unformat arrays:
 		if (isArray(value)) {
-			return map(value, function(val) {
+			return map(value, function (val) {
 				return unformat(val, decimal);
 			});
 		}
@@ -193,13 +207,13 @@
 		// Default decimal point comes from settings, but could be set to eg. "," in opts:
 		decimal = decimal || lib.settings.number.decimal;
 
-		 // Build regex to strip out everything except digits, decimal point and minus sign:
+		// Build regex to strip out everything except digits, decimal point and minus sign:
 		var regex = new RegExp("[^0-9-" + decimal + "]", ["g"]),
 			unformatted = parseFloat(
 				("" + value)
-				.replace(/\((.*)\)/, "-$1") // replace bracketed values with negatives
-				.replace(regex, '')         // strip out any cruft
-				.replace(decimal, '.')      // make sure decimal point is standard
+					.replace(/\((.*)\)/, "-$1") // replace bracketed values with negatives
+					.replace(regex, '')         // strip out any cruft
+					.replace(decimal, '.')      // make sure decimal point is standard
 			);
 
 		// This will fail silently which may cause trouble, let's wait and see:
@@ -213,7 +227,7 @@
 	 * Fixes binary rounding issues (eg. (0.615).toFixed(2) === "0.61") that present
 	 * problems for accounting- and finance-related software.
 	 */
-	var toFixed = lib.toFixed = function(value, precision) {
+	var toFixed = lib.toFixed = function (value, precision) {
 		precision = checkPrecision(precision, lib.settings.number.precision);
 		var power = Math.pow(10, precision);
 
@@ -229,10 +243,10 @@
 	 * Localise by overriding the precision and thousand / decimal separators
 	 * 2nd parameter `precision` can be an object matching `settings.number`
 	 */
-	var formatNumber = lib.formatNumber = lib.format = function(number, precision, thousand, decimal) {
+	var formatNumber = lib.formatNumber = lib.format = function (number, precision, thousand, decimal) {
 		// Resursively format arrays:
 		if (isArray(number)) {
-			return map(number, function(val) {
+			return map(number, function (val) {
 				return formatNumber(val, precision, thousand, decimal);
 			});
 		}
@@ -242,13 +256,13 @@
 
 		// Build options object from second param (if object) or all params, extending defaults:
 		var opts = defaults(
-				(isObject(precision) ? precision : {
-					precision : precision,
-					thousand : thousand,
-					decimal : decimal
-				}),
-				lib.settings.number
-			),
+			(isObject(precision) ? precision : {
+				precision: precision,
+				thousand: thousand,
+				decimal: decimal
+			}),
+			lib.settings.number
+		),
 
 			// Clean up precision
 			usePrecision = checkPrecision(opts.precision),
@@ -274,10 +288,10 @@
 	 *
 	 * To do: tidy up the parameters
 	 */
-	var formatMoney = lib.formatMoney = function(number, symbol, precision, thousand, decimal, format) {
+	var formatMoney = lib.formatMoney = function (number, symbol, precision, thousand, decimal, format) {
 		// Resursively format arrays:
 		if (isArray(number)) {
-			return map(number, function(val){
+			return map(number, function (val) {
 				return formatMoney(val, symbol, precision, thousand, decimal, format);
 			});
 		}
@@ -287,15 +301,15 @@
 
 		// Build options object from second param (if object) or all params, extending defaults:
 		var opts = defaults(
-				(isObject(symbol) ? symbol : {
-					symbol : symbol,
-					precision : precision,
-					thousand : thousand,
-					decimal : decimal,
-					format : format
-				}),
-				lib.settings.currency
-			),
+			(isObject(symbol) ? symbol : {
+				symbol: symbol,
+				precision: precision,
+				thousand: thousand,
+				decimal: decimal,
+				format: format
+			}),
+			lib.settings.currency
+		),
 
 			// Check format (returns object with pos, neg and zero):
 			formats = checkCurrencyFormat(opts.format),
@@ -320,20 +334,20 @@
 	 * NB: `white-space:pre` CSS rule is required on the list container to prevent
 	 * browsers from collapsing the whitespace in the output strings.
 	 */
-	lib.formatColumn = function(list, symbol, precision, thousand, decimal, format) {
+	lib.formatColumn = function (list, symbol, precision, thousand, decimal, format) {
 		if (!list) return [];
 
 		// Build options object from second param (if object) or all params, extending defaults:
 		var opts = defaults(
-				(isObject(symbol) ? symbol : {
-					symbol : symbol,
-					precision : precision,
-					thousand : thousand,
-					decimal : decimal,
-					format : format
-				}),
-				lib.settings.currency
-			),
+			(isObject(symbol) ? symbol : {
+				symbol: symbol,
+				precision: precision,
+				thousand: thousand,
+				decimal: decimal,
+				format: format
+			}),
+			lib.settings.currency
+		),
 
 			// Check format (returns object with pos, neg and zero), only need pos for now:
 			formats = checkCurrencyFormat(opts.format),
@@ -345,7 +359,7 @@
 			maxLength = 0,
 
 			// Format the list according to options, store the length of the longest string:
-			formatted = map(list, function(val, i) {
+			formatted = map(list, function (val, i) {
 				if (isArray(val)) {
 					// Recursively format columns if list is a multi-dimensional array:
 					return lib.formatColumn(val, opts);
@@ -365,11 +379,11 @@
 			});
 
 		// Pad each number in the list and send back the column of numbers:
-		return map(formatted, function(val, i) {
+		return map(formatted, function (val, i) {
 			// Only if this is a string (not a nested array, which would have already been padded):
 			if (isString(val) && val.length < maxLength) {
 				// Depending on symbol position, pad after symbol or at index 0:
-				return padAfterSymbol ? val.replace(opts.symbol, opts.symbol+(new Array(maxLength - val.length + 1).join(" "))) : (new Array(maxLength - val.length + 1).join(" ")) + val;
+				return padAfterSymbol ? val.replace(opts.symbol, opts.symbol + (new Array(maxLength - val.length + 1).join(" "))) : (new Array(maxLength - val.length + 1).join(" ")) + val;
 			}
 			return val;
 		});
@@ -387,15 +401,15 @@
 		exports.accounting = lib;
 	} else if (typeof define === 'function' && define.amd) {
 		// Return the library as an AMD module:
-		define([], function() {
+		define([], function () {
 			return lib;
 		});
 	} else {
 		// Use accounting.noConflict to restore `accounting` back to its original value.
 		// Returns a reference to the library's `accounting` object;
 		// e.g. `var numbers = accounting.noConflict();`
-		lib.noConflict = (function(oldAccounting) {
-			return function() {
+		lib.noConflict = (function (oldAccounting) {
+			return function () {
 				// Reset the value of the root's `accounting` variable:
 				root.accounting = oldAccounting;
 				// Delete the noConflict method:
